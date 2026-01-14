@@ -1,27 +1,19 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "backend/main.py",
-      "use": "@vercel/python"
-    }
-  ],
   "routes": [
     {
-      "src": "/authors",
-      "dest": "backend/main.py"
-    },
-    {
-      "src": "/stats",
-      "dest": "backend/main.py"
-    },
-    {
-      "src": "/export_csv",
-      "dest": "backend/main.py"
-    },
-    {
       "src": "/(.*)",
-      "dest": "frontend/$1"
+      "dest": "/frontend/$1"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/frontend/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/frontend/$1"
     }
   ]
 }
