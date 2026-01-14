@@ -11,54 +11,77 @@
 
 <body class="bg-gray-100">
     <div id="app" class="container mx-auto p-6">
-        <header class="flex justify-between items-center mb-8">
+        <header class="flex justify-between items-center mb-6">
             <h1 class="text-3xl font-bold">🚀 Build Club Outreach</h1>
             <div class="flex gap-4 items-center">
                 <span class="bg-white px-4 py-2 rounded shadow text-sm">
-                    Total: <strong>{{ authors.length }}</strong>
+                    Total: <strong>{{ currentList.length }}</strong>
                 </span>
                 <button @click="downloadCSV" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    📥 CSV
+                    📥 Download CSV
                 </button>
             </div>
         </header>
 
-        <div class="bg-white rounded shadow">
+        <!-- Tabs -->
+        <div class="mb-6 border-b border-gray-200">
+            <nav class="flex gap-4">
+                <button @click="activeTab='main'"
+                    :class="activeTab==='main' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                    class="py-4 px-1 border-b-2 font-medium text-sm">
+                    Main List ({{ mainList.length }})
+                </button>
+                <button @click="activeTab='discarded'"
+                    :class="activeTab==='discarded' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                    class="py-4 px-1 border-b-2 font-medium text-sm">
+                    Discarded List ({{ discardedList.length }})
+                </button>
+            </nav>
+        </div>
+
+        <div class="bg-white rounded shadow overflow-x-auto">
             <table class="w-full">
                 <thead class="bg-gray-50 border-b">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs">#</th>
-                        <th class="px-4 py-3 text-left text-xs">Name</th>
-                        <th class="px-4 py-3 text-left text-xs">Company</th>
-                        <th class="px-4 py-3 text-left text-xs">Bio</th>
-                        <th class="px-4 py-3 text-left text-xs">Tracking</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium">#</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium">Name</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium">Company</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium">Email</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium">Bio</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium">Tracking</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="(a, i) in authors" :key="a.id" class="border-b">
-                        <td class="px-4 py-3">{{ i + 1 }}</td>
+                    <tr v-for="(a, i) in currentList" :key="a.id" class="border-b hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm">{{ i + 1 }}</td>
                         <td class="px-4 py-3">
-                            <div class="font-medium">{{ a.full_name }}</div>
+                            <div class="font-medium text-sm">{{ a.name }}</div>
                             <a v-if="a.linkedin" :href="a.linkedin" target="_blank"
-                                class="text-blue-500 text-xs">LinkedIn</a>
+                                class="text-blue-500 text-xs hover:underline">LinkedIn</a>
                         </td>
-                        <td class="px-4 py-3">{{ a.company }}</td>
-                        <td class="px-4 py-3 text-sm">{{ a.bio }}</td>
+                        <td class="px-4 py-3 text-sm">{{ a.company }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">{{ a.email || '-' }}</td>
+                        <td class="px-4 py-3 text-xs text-gray-700 max-w-md">{{ a.bio }}</td>
                         <td class="px-4 py-3">
-                            <label class="flex gap-2 text-xs">
-                                <input type="checkbox" :checked="track[a.id]?.conn"
-                                    @change="save(a.id,'conn',$event.target.checked)">Conn
-                            </label>
-                            <label class="flex gap-2 text-xs">
-                                <input type="checkbox" :checked="track[a.id]?.dm"
-                                    @change="save(a.id,'dm',$event.target.checked)">DM
-                            </label>
-                            <select :value="track[a.id]?.status||''" @change="save(a.id,'status',$event.target.value)"
-                                class="text-xs border rounded mt-1">
-                                <option value="">-</option>
-                                <option value="agreed">✓</option>
-                                <option value="rejected">✗</option>
-                            </select>
+                            <div class="flex flex-col gap-1">
+                                <label class="flex items-center gap-2 text-xs cursor-pointer">
+                                    <input type="checkbox" :checked="track[a.id]?.conn"
+                                        @change="save(a.id,'conn',$event.target.checked)">
+                                    <span>Conn. Sent</span>
+                                </label>
+                                <label class="flex items-center gap-2 text-xs cursor-pointer">
+                                    <input type="checkbox" :checked="track[a.id]?.dm"
+                                        @change="save(a.id,'dm',$event.target.checked)">
+                                    <span>Msg Sent</span>
+                                </label>
+                                <select :value="track[a.id]?.status||''"
+                                    @change="save(a.id,'status',$event.target.value)"
+                                    class="text-xs border rounded p-1">
+                                    <option value="">Status...</option>
+                                    <option value="agreed">Agreed</option>
+                                    <option value="rejected">Rejected</option>
+                                </select>
+                            </div>
                         </td>
                     </tr>
                 </tbody>
@@ -72,64 +95,178 @@
         createApp({
             data() {
                 return {
-                    authors: [
-                        { id: 573, full_name: "Jason Fried", company: "37signals", linkedin: "https://www.linkedin.com/in/jason-fried", bio: "Co-founder of Basecamp. Calm companies advocate" },
-                        { id: 574, full_name: "David Heinemeier Hansson", company: "37signals", linkedin: "https://www.linkedin.com/in/david-heinemeier-hansson-374b18221", bio: "Creator of Ruby on Rails" },
-                        { id: 575, full_name: "Paul Jarvis", company: "Fathom Analytics", linkedin: "https://www.linkedin.com/in/pauljarvis", bio: "Company of One author" },
-                        { id: 576, full_name: "Ash Maurya", company: "LEANSTACK", linkedin: "https://www.linkedin.com/in/ashmaurya", bio: "Lean Canvas creator" },
-                        { id: 577, full_name: "Nir Eyal", company: "NirAndFar", linkedin: "https://www.linkedin.com/in/nireyal", bio: "Hooked author" },
-                        { id: 578, full_name: "Marty Neumeier", company: "Liquid Agency", linkedin: "https://www.linkedin.com/in/martyneumeier", bio: "The Brand Gap author" },
-                        { id: 579, full_name: "Lou Downe", company: "School of Good Services", linkedin: null, bio: "Service design expert" },
-                        { id: 580, full_name: "April Dunford", company: "Ambient Strategy", linkedin: "https://www.linkedin.com/in/aprildunford", bio: "Positioning expert" },
-                        { id: 581, full_name: "Michele Hansen", company: "Geocodio", linkedin: null, bio: "Deploy Empathy author" },
-                        { id: 582, full_name: "Adii Pienaar", company: "Cogsy", linkedin: null, bio: "WooCommerce founder" },
-                        { id: 583, full_name: "Gabriel Weinberg", company: "DuckDuckGo", linkedin: "https://www.linkedin.com/in/gabrielweinberg", bio: "Traction co-author" },
-                        { id: 584, full_name: "Justin Mares", company: "Kettle & Fire", linkedin: null, bio: "Traction co-author" },
-                        { id: 585, full_name: "Eric Ries", company: "LTSE", linkedin: "https://www.linkedin.com/in/eries", bio: "Lean Startup author" },
-                        { id: 586, full_name: "Ben Horowitz", company: "a16z", linkedin: "https://www.linkedin.com/in/benhorowitz", bio: "Hard Thing About Hard Things author" },
-                        { id: 587, full_name: "Jessica Livingston", company: "Y Combinator", linkedin: "https://www.linkedin.com/in/jessicalivingston", bio: "Founders at Work author" },
-                        { id: 588, full_name: "Chris Guillebeau", company: "Art of Non-Conformity", linkedin: "https://www.linkedin.com/in/chrisguillebeau", bio: "$100 Startup author" },
-                        { id: 589, full_name: "MJ DeMarco", company: "Fastlane Forum", linkedin: "https://www.linkedin.com/in/mj-demarco-9b0445", bio: "Millionaire Fastlane author" },
-                        { id: 590, full_name: "Dan Norris", company: "WP Curve", linkedin: null, bio: "7 Day Startup author" },
-                        { id: 591, full_name: "Allan Dib", company: "Successwise", linkedin: null, bio: "1-Page Marketing Plan author" },
-                        { id: 592, full_name: "Alex Hormozi", company: "Acquisition.com", linkedin: "https://www.linkedin.com/in/alexanderhormozi", bio: "$100M Offers author" },
-                        { id: 474, full_name: "Arvid Kahl", company: "FeedbackPanda", linkedin: "https://www.linkedin.com/in/arvidkahl", bio: "Bootstrapping expert" },
-                        { id: 475, full_name: "Daniel Vassallo", company: "Small Bets", linkedin: "https://www.linkedin.com/in/danielvassallo", bio: "Small bets approach" },
-                        { id: 476, full_name: "Pieter Levels", company: "Nomad List", linkedin: "https://www.linkedin.com/in/levelspieter", bio: "40+ startups" },
-                        { id: 481, full_name: "Rob Walling", company: "TinySeed", linkedin: "https://www.linkedin.com/in/robwalling", bio: "Bootstrapped SaaS pioneer" },
-                        { id: 479, full_name: "Rand Fishkin", company: "SparkToro", linkedin: "https://www.linkedin.com/in/randfishkin", bio: "Lost and Founder author" },
-                        { id: 478, full_name: "Sahil Lavingia", company: "Gumroad", linkedin: "https://www.linkedin.com/in/sahillavingia", bio: "Calm company" },
-                        { id: 480, full_name: "Nathan Barry", company: "ConvertKit", linkedin: "https://www.linkedin.com/in/nathanbarry", bio: "$30M ARR bootstrap" },
-                        { id: 477, full_name: "Justin Welsh", company: "Justin Welsh", linkedin: "https://www.linkedin.com/in/justinwelsh", bio: "Solo entrepreneur" },
-                        { id: 482, full_name: "Courtland Allen", company: "Indie Hackers", linkedin: "https://www.linkedin.com/in/courtland-allen-93203422", bio: "Indie Hackers" },
-                        { id: 483, full_name: "Pat Walls", company: "Starter Story", linkedin: "https://www.linkedin.com/in/patwalls", bio: "Starter Story" }
+                    activeTab: 'main',
+                    mainList: [
+                        { id: 1, name: "Arvid Kahl", company: "FeedbackPanda", email: "arvid@thebootstrappedfounder.com", linkedin: "https://www.linkedin.com/in/arvidkahl", bio: "Founder of FeedbackPanda. Bootstrapped to $55k MRR, sold to PE. Author of Zero to Sold. Advocate for calm entrepreneurship." },
+                        { id: 2, name: "Daniel Vassallo", company: "Small Bets", email: "daniel@smallbets.co", linkedin: "https://www.linkedin.com/in/danielvassallo", bio: "Ex-Amazon L6 engineer ($500k/year). Quit to bet on himself. Created Small Bets community ($1M+ revenue). Portfolio approach advocate." },
+                        { id: 3, name: "Pieter Levels", company: "Nomad List", email: "pieter@levels.io", linkedin: "https://www.linkedin.com/in/levelspieter", bio: "Indie Hacker. Launched 12 startups in 12 months. Runs Nomad List, Remote OK, PhotoAI. $3M+/year, 0 employees, 0 funding." },
+                        { id: 4, name: "Justin Welsh", company: "Justin Welsh", email: "justin@justinwelsh.me", linkedin: "https://www.linkedin.com/in/justinwelsh", bio: "Former exec. Built one-person business to $5M+ revenue (94% margins). LinkedIn Operating System creator. 500k+ followers." },
+                        { id: 5, name: "Sahil Lavingia", company: "Gumroad", email: "sahil@gumroad.com", linkedin: "https://www.linkedin.com/in/sahillavingia", bio: "Founder of Gumroad. Raised $8M, growth stalled, bought back company. Rebuilt as profitable calm company. Author of Minimalist Entrepreneur." },
+                        { id: 6, name: "Rand Fishkin", company: "SparkToro", email: "rand@sparktoro.com", linkedin: "https://www.linkedin.com/in/randfishkin", bio: "Co-founder of Moz ($45M revenue). Author of Lost and Founder. Founded SparkToro with unique profit-sharing model. Vocal critic of growth-at-all-costs." },
+                        { id: 7, name: "Nathan Barry", company: "ConvertKit", email: "nathan@convertkit.com", linkedin: "https://www.linkedin.com/in/nathanbarry", bio: "Founder of ConvertKit (now Kit). Bootstrapped to $35M+ ARR. Author of Authority. Bought a ghost town in Idaho for creator campus." },
+                        { id: 8, name: "Rob Walling", company: "TinySeed", email: "rob@tinyseed.com", linkedin: "https://www.linkedin.com/in/robwalling", bio: "Godfather of Bootstrapping. Built and sold Drip. Co-founded MicroConf and TinySeed. Podcast: Startups for the Rest of Us (600+ episodes)." },
+                        { id: 9, name: "Courtland Allen", company: "Indie Hackers", email: "courtland@indiehackers.com", linkedin: "https://www.linkedin.com/in/courtland-allen-93203422", bio: "Founder of IndieHackers.com. Built in 3 weeks, acquired by Stripe in 6 months. Runs podcast interviewing successful bootstrappers." },
+                        { id: 10, name: "Pat Walls", company: "Starter Story", email: "pat@starterstory.com", linkedin: "https://www.linkedin.com/in/patwalls", bio: "Founder of Starter Story. Bootstrapped to $1M+/year through SEO. Database of thousands of case studies. Shares all revenue numbers publicly." },
+                        { id: 11, name: "Jason Fried", company: "37signals", email: null, linkedin: "https://www.linkedin.com/in/jason-fried", bio: "Co-founder of Basecamp. Proponent of calm companies and remote work." },
+                        { id: 12, name: "David Heinemeier Hansson", company: "37signals", email: null, linkedin: "https://www.linkedin.com/in/david-heinemeier-hansson-374b18221", bio: "Co-founder of Basecamp. Creator of Ruby on Rails. Outspoken critic of big tech monopolies." },
+                        { id: 13, name: "Paul Jarvis", company: "Fathom Analytics", email: null, linkedin: "https://www.linkedin.com/in/pauljarvis", bio: "Designer and writer. Co-founder of Fathom Analytics. Advocates for staying small and profitable." },
+                        { id: 14, name: "Ash Maurya", company: "LEANSTACK", email: null, linkedin: "https://www.linkedin.com/in/ashmaurya", bio: "Creator of the Lean Canvas. Focuses on systematic scaling and problem/solution fit." },
+                        { id: 15, name: "Nir Eyal", company: "NirAndFar", email: null, linkedin: "https://www.linkedin.com/in/nireyal", bio: "Author and lecturer. Expert on habit-forming technology and distraction." },
+                        { id: 16, name: "Marty Neumeier", company: "Liquid Agency", email: null, linkedin: "https://www.linkedin.com/in/martyneumeier", bio: "Brand expert. Focuses on the gap between business strategy and design." },
+                        { id: 17, name: "Lou Downe", company: "School of Good Services", email: null, linkedin: null, bio: "Service design expert. Former Design Director of the UK Government." },
+                        { id: 18, name: "April Dunford", company: "Ambient Strategy", email: null, linkedin: "https://www.linkedin.com/in/aprildunford", bio: "Positioning expert. Helps B2B tech companies position their products." },
+                        { id: 19, name: "Michele Hansen", company: "Geocodio", email: null, linkedin: null, bio: "Co-founder of Geocodio. Expert on customer research and empathy in business." },
+                        { id: 20, name: "Adii Pienaar", company: "Cogsy", email: null, linkedin: null, bio: "Founder of WooCommerce (sold) and Cogsy. Writes about work-life balance and profitability." },
+                        { id: 21, name: "Gabriel Weinberg", company: "DuckDuckGo", email: null, linkedin: "https://www.linkedin.com/in/gabrielweinberg", bio: "CEO of DuckDuckGo. Co-author of Traction, a framework for startup growth." },
+                        { id: 22, name: "Justin Mares", company: "Kettle & Fire", email: null, linkedin: null, bio: "Co-author of Traction. Founder of Kettle & Fire and Perfect Keto." },
+                        { id: 23, name: "Eric Ries", company: "Long-Term Stock Exchange", email: null, linkedin: "https://www.linkedin.com/in/eries", bio: "Author of The Lean Startup. CEO of Long-Term Stock Exchange." },
+                        { id: 24, name: "Ben Horowitz", company: "Andreessen Horowitz", email: null, linkedin: "https://www.linkedin.com/in/benhorowitz", bio: "Co-founder of a16z. Former CEO of Opsware. Author of The Hard Thing About Hard Things." },
+                        { id: 25, name: "Jessica Livingston", company: "Y Combinator", email: null, linkedin: "https://www.linkedin.com/in/jessicalivingston", bio: "Co-founder of Y Combinator. Interviewed hundreds of founders." },
+                        { id: 26, name: "Chris Guillebeau", company: "The Art of Non-Conformity", email: null, linkedin: "https://www.linkedin.com/in/chrisguillebeau", bio: "Author and traveler. Focuses on micro-businesses and freedom." },
+                        { id: 27, name: "MJ DeMarco", company: "The Fastlane Forum", email: null, linkedin: "https://www.linkedin.com/in/mj-demarco-9b0445", bio: "Founder of Limos.com (sold). Author of The Millionaire Fastlane." },
+                        { id: 28, name: "Dan Norris", company: "WP Curve", email: null, linkedin: null, bio: "Founder of WP Curve (sold to GoDaddy). Author of The 7 Day Startup." },
+                        { id: 29, name: "Allan Dib", company: "Successwise", email: null, linkedin: null, bio: "Serial entrepreneur and marketer. Author of The 1-Page Marketing Plan." },
+                        { id: 30, name: "Alex Hormozi", company: "Acquisition.com", email: null, linkedin: "https://www.linkedin.com/in/alexanderhormozi", bio: "Founder of GymLaunch. Author of $100M Offers." },
+                        { id: 31, name: "DHH", company: "37signals", email: null, linkedin: null, bio: "Creator of Rails. Co-founder Basecamp. Anti-hustle culture advocate." },
+                        { id: 32, name: "Tony Fadell", company: "Build Collective", email: null, linkedin: null, bio: "Creator of iPod, Nest. Writes about product design and management." },
+                        { id: 33, name: "Tiago Forte", company: "Forte Labs", email: null, linkedin: null, bio: "Productivity expert. Founder of Forte Labs." },
+                        { id: 34, name: "James Clear", company: "JamesClear.com", email: null, linkedin: null, bio: "Writer and entrepreneur. Expert on habit formation." },
+                        { id: 35, name: "Josh Kaufman", company: "Personal MBA", email: null, linkedin: null, bio: "Independent business educator. Synthesizes business concepts." },
+                        { id: 36, name: "Ramit Sethi", company: "I Will Teach You To Be Rich", email: null, linkedin: null, bio: "Founder of IWT. Focuses on personal finance and psychology." },
+                        { id: 37, name: "Noah Kagan", company: "AppSumo", email: null, linkedin: null, bio: "Founder of AppSumo. Early FB/Mint employee. Focuses on marketing." },
+                        { id: 38, name: "Ali Abdaal", company: "Ali Abdaal Ltd", email: null, linkedin: null, bio: "YouTuber and entrepreneur. Writes about productivity and creator economy." },
+                        { id: 39, name: "Pat Flynn", company: "Smart Passive Income", email: null, linkedin: null, bio: "Podcaster and entrepreneur. Expert on affiliate marketing." },
+                        { id: 40, name: "John Warrillow", company: "The Value Builder System", email: null, linkedin: null, bio: "Founder of The Value Builder System. Expert on company exit value." },
+                        { id: 41, name: "Mike Michalowicz", company: "Profit First Professionals", email: null, linkedin: null, bio: "Author and entrepreneur. Reinvented accounting for small biz." },
+                        { id: 42, name: "Gino Wickman", company: "EOS Worldwide", email: null, linkedin: null, bio: "Creator of EOS (Entrepreneurial Operating System)." },
+                        { id: 43, name: "Verne Harnish", company: "Gazelles", email: null, linkedin: null, bio: "Founder of EO. Expert on scaling." },
+                        { id: 44, name: "Elad Gil", company: "Color Genomics", email: null, linkedin: null, bio: "Investor and advisor. Former VP at Twitter. Expert on scaling startups." },
+                        { id: 45, name: "Scott Belsky", company: "Behance", email: null, linkedin: null, bio: "Founder of Behance. CPO at Adobe. Writes about startup endurance." },
+                        { id: 46, name: "Julie Zhuo", company: "Sundial", email: null, linkedin: null, bio: "Former VP Design at FB. Co-founder of Sundial. Writes about management." },
+                        { id: 47, name: "Lenny Rachitsky", company: "Lenny's Newsletter", email: null, linkedin: null, bio: "Former Product Lead at Airbnb. Top tech newsletter writer." },
+                        { id: 48, name: "Gagan Biyani", company: "Maven", email: null, linkedin: null, bio: "Co-founder of Udemy and Maven. Cohort-based courses expert." },
+                        { id: 49, name: "Andrew Chen", company: "a16z", email: null, linkedin: null, bio: "Partner at a16z. Former Uber growth. Expert on network effects." },
+                        { id: 50, name: "Ryan Hoover", company: "Product Hunt", email: null, linkedin: null, bio: "Founder of Product Hunt. Investor." },
+                        { id: 51, name: "Alexis Ohanian", company: "Seven Seven Six", email: null, linkedin: null, bio: "Co-founder of Reddit. Investor." },
+                        { id: 52, name: "Peter Thiel", company: "Founders Fund", email: null, linkedin: null, bio: "PayPal Mafia. First investor in FB." },
+                        { id: 53, name: "Walter Isaacson", company: "Author", email: null, linkedin: null, bio: "Biographer of Jobs, Musk. Expert on founders." },
+                        { id: 54, name: "Brad Feld", company: "Techstars", email: null, linkedin: null, bio: "Co-founder Techstars. Investor." },
+                        { id: 55, name: "Derek Sivers", company: "CD Baby", email: null, linkedin: null, bio: "Founder of CD Baby. Philosopher of entrepreneurship." },
+                        { id: 56, name: "Kander & Yang", company: "Clearbit", email: null, linkedin: null, bio: "Founders of Clearbit." },
+                        { id: 57, name: "Jason Cohen", company: "Smart Bear / WP Engine", email: null, linkedin: null, bio: "Founder of WP Engine and Smart Bear. Expert on bootstrapping and scaling SaaS." },
+                        { id: 58, name: "Greg Head", company: "Practical Founders", email: null, linkedin: null, bio: "Founder of Practical Founders. Helps scaling software founders." },
+                        { id: 59, name: "Hiten Shah", company: "Nira", email: null, linkedin: null, bio: "Co-founder of Crazy Egg, KISSmetrics, Nira. Prolific advisor." },
+                        { id: 60, name: "Akin Alabi", company: "NairaBET", email: null, linkedin: null, bio: "Founder of NairaBET. Entrepreneur and politician." },
+                        { id: 61, name: "Clifford Oravec", company: "Tamboo", email: null, linkedin: null, bio: "Indie hacker. Writer of The Epic Guide to Bootstrapping." },
+                        { id: 62, name: "Andrew Gazdecki", company: "Acquire.com", email: null, linkedin: null, bio: "Founder of Acquire.com. Expert on selling startups." },
+                        { id: 63, name: "Dane Maxwell", company: "The Foundation", email: null, linkedin: null, bio: "Founder of The Foundation. Teaches starting businesses from scratch." },
+                        { id: 64, name: "Takuya Matsuyama", company: "Inkdrop", email: null, linkedin: null, bio: "Solo dev of Inkdrop. Shares journey on YouTube/Blog." },
+                        { id: 65, name: "Alexander Isora", company: "Unicorn Platform", email: null, linkedin: null, bio: "Founder of Unicorn Platform. Open startup advocate." },
+                        { id: 66, name: "Ryan Law", company: "Ahrefs", email: null, linkedin: null, bio: "Director of Content at Ahrefs. Content strategy expert." },
+                        { id: 67, name: "Joel York", company: "Chaotic Flow", email: null, linkedin: null, bio: "SaaS veteran. Chaotic Flow blog writer." },
+                        { id: 68, name: "Sarah Hatter", company: "CoSupport", email: null, linkedin: null, bio: "Founder of CoSupport. Expert on customer service." },
+                        { id: 69, name: "Wade Foster", company: "Zapier", email: null, linkedin: null, bio: "Co-founder of Zapier. Remote work pioneer." },
+                        { id: 70, name: "Mike McDerment", company: "FreshBooks", email: null, linkedin: null, bio: "Co-founder of FreshBooks. Advocates for value-based pricing." },
+                        { id: 71, name: "Jeromy Wilson", company: "Niche Academy", email: null, linkedin: null, bio: "Founder of Niche Academy. Bootstrapped success." },
+                        { id: 72, name: "Scott Hanselman", company: "Microsoft", email: null, linkedin: null, bio: "Programmer, blogger, speaker. Huge influence." },
+                        { id: 73, name: "Patrick McKenzie", company: "Stripe", email: null, linkedin: null, bio: "Patio11. Legend in tech engineering/marketing overlap." },
+                        { id: 74, name: "Laura Roeder", company: "Paperbell", email: null, linkedin: null, bio: "Founder of MeetEdgar and Paperbell. Social media expert." },
+                        { id: 75, name: "Randall Kanna", company: "Author", email: null, linkedin: null, bio: "Software engineer and author." },
+                        { id: 76, name: "Shawn Wang", company: "Swyx", email: null, linkedin: null, bio: "Developer advocate and founder." },
+                        { id: 77, name: "Steph Smith", company: "a16z", email: null, linkedin: null, bio: "Writer and podcast host. Doing Content Right author." },
+                        { id: 78, name: "Jakob Greenfeld", company: "Opportunities", email: null, linkedin: null, bio: "Indie hacker. Experimenter." },
+                        { id: 79, name: "Bananaman", company: "Potion", email: null, linkedin: null, bio: "Notion website builder. Indie hacker." },
+                        { id: 80, name: "Tony Dinh", company: "TypingMind", email: null, linkedin: null, bio: "Indie hacker. Built TypingMind, Xnapper." },
+                        { id: 81, name: "Danny Postma", company: "HeadshotPro", email: null, linkedin: null, bio: "Indie hacker. AI headshots." },
+                        { id: 82, name: "Marc Lou", company: "ShipFast", email: null, linkedin: null, bio: "Indie hacker. ShipFast boilerplate." },
+                        { id: 83, name: "Sabin Dima", company: "Waydev", email: null, linkedin: null, bio: "Founder of Waydev. Git analytics." },
+                        { id: 84, name: "Marie Poulin", company: "Notion Mastery", email: null, linkedin: null, bio: "Notion expert. Course creator." },
+                        { id: 85, name: "Khe Hy", company: "RadReads", email: null, linkedin: null, bio: "Founder of RadReads. Productivity expert." },
+                        { id: 86, name: "Anne-Laure Le Cunff", company: "Ness Labs", email: null, linkedin: null, bio: "Founder of Ness Labs. Neuroscience and productivity." },
+                        { id: 87, name: "Charly Wc", company: "Indie Hacker", email: null, linkedin: null, bio: "Indie Maker." },
+                        { id: 88, name: "Jon Yongfook", company: "Bannerbear", email: null, linkedin: null, bio: "Founder of Bannerbear. Open startup." },
+                        { id: 89, name: "Andrey Azimov", company: "Sheet2Site", email: null, linkedin: null, bio: "Hardcore shipping indie hacker." },
+                        { id: 90, name: "Ajay Yadav", company: "Simplified", email: null, linkedin: null, bio: "Founder of Simplified." },
+                        { id: 91, name: "Guillermo Rauch", company: "Vercel", email: null, linkedin: null, bio: "CEO of Vercel. Creator of Next.js." },
+                        { id: 92, name: "Lee Robinson", company: "Vercel", email: null, linkedin: null, bio: "VP DevRel Vercel." },
+                        { id: 93, name: "Caleb Porzio", company: "Alpine.js / Livewire", email: null, linkedin: null, bio: "Creator of Alpine.js and Livewire." },
+                        { id: 94, name: "Adam Wathan", company: "Tailwind Labs", email: null, linkedin: null, bio: "Creator of Tailwind CSS. Author of Refactoring UI." },
+                        { id: 95, name: "Steve Schoger", company: "Tailwind Labs", email: null, linkedin: null, bio: "Designer. Co-author of Refactoring UI." },
+                        { id: 96, name: "Alex Bass", company: "Efficient App", email: null, linkedin: null, bio: "Automation expert." },
+                        { id: 97, name: "Ben Tossell", company: "Makerpad", email: null, linkedin: null, bio: "Founder of Makerpad. No-code pioneer." }
+                    ],
+                    discardedList: [
+                        { id: 573, name: "Jason Fried", company: "37signals", email: null, linkedin: "https://www.linkedin.com/in/jason-fried", bio: "Co-founder of Basecamp. Calm companies advocate" },
+                        { id: 574, name: "David Heinemeier Hansson", company: "37signals", email: null, linkedin: "https://www.linkedin.com/in/david-heinemeier-hansson-374b18221", bio: "Creator of Ruby on Rails" },
+                        { id: 575, name: "Paul Jarvis", company: "Fathom Analytics", email: null, linkedin: "https://www.linkedin.com/in/pauljarvis", bio: "Company of One author" },
+                        { id: 576, name: "Ash Maurya", company: "LEANSTACK", email: null, linkedin: "https://www.linkedin.com/in/ashmaurya", bio: "Lean Canvas creator" },
+                        { id: 577, name: "Nir Eyal", company: "NirAndFar", email: null, linkedin: "https://www.linkedin.com/in/nireyal", bio: "Hooked author" },
+                        { id: 578, name: "Marty Neumeier", company: "Liquid Agency", email: null, linkedin: "https://www.linkedin.com/in/martyneumeier", bio: "The Brand Gap author" },
+                        { id: 579, name: "Lou Downe", company: "School of Good Services", email: null, linkedin: null, bio: "Service design expert" },
+                        { id: 580, name: "April Dunford", company: "Ambient Strategy", email: null, linkedin: "https://www.linkedin.com/in/aprildunford", bio: "Positioning expert" },
+                        { id: 581, name: "Michele Hansen", company: "Geocodio", email: null, linkedin: null, bio: "Deploy Empathy author" },
+                        { id: 582, name: "Adii Pienaar", company: "Cogsy", email: null, linkedin: null, bio: "WooCommerce founder" },
+                        { id: 583, name: "Gabriel Weinberg", company: "DuckDuckGo", email: null, linkedin: "https://www.linkedin.com/in/gabrielweinberg", bio: "Traction co-author" },
+                        { id: 584, name: "Justin Mares", company: "Kettle & Fire", email: null, linkedin: null, bio: "Traction co-author" },
+                        { id: 585, name: "Eric Ries", company: "LTSE", email: null, linkedin: "https://www.linkedin.com/in/eries", bio: "Lean Startup author" },
+                        { id: 586, name: "Ben Horowitz", company: "a16z", email: null, linkedin: "https://www.linkedin.com/in/benhorowitz", bio: "Hard Thing About Hard Things author" },
+                        { id: 587, name: "Jessica Livingston", company: "Y Combinator", email: null, linkedin: "https://www.linkedin.com/in/jessicalivingston", bio: "Founders at Work author" },
+                        { id: 588, name: "Chris Guillebeau", company: "Art of Non-Conformity", email: null, linkedin: "https://www.linkedin.com/in/chrisguillebeau", bio: "$100 Startup author" },
+                        { id: 589, name: "MJ DeMarco", company: "Fastlane Forum", email: null, linkedin: "https://www.linkedin.com/in/mj-demarco-9b0445", bio: "Millionaire Fastlane author" },
+                        { id: 590, name: "Dan Norris", company: "WP Curve", email: null, linkedin: null, bio: "7 Day Startup author" },
+                        { id: 591, name: "Allan Dib", company: "Successwise", email: null, linkedin: null, bio: "1-Page Marketing Plan author" },
+                        { id: 592, name: "Alex Hormozi", company: "Acquisition.com", email: null, linkedin: "https://www.linkedin.com/in/alexanderhormozi", bio: "$100M Offers author" },
+                        { id: 474, name: "Arvid Kahl", company: "FeedbackPanda", email: null, linkedin: "https://www.linkedin.com/in/arvidkahl", bio: "Bootstrapping expert" },
+                        { id: 475, name: "Daniel Vassallo", company: "Small Bets", email: null, linkedin: "https://www.linkedin.com/in/danielvassallo", bio: "Small bets approach" },
+                        { id: 476, name: "Pieter Levels", company: "Nomad List", email: null, linkedin: "https://www.linkedin.com/in/levelspieter", bio: "40+ startups" },
+                        { id: 481, name: "Rob Walling", company: "TinySeed", email: null, linkedin: "https://www.linkedin.com/in/robwalling", bio: "Bootstrapped SaaS pioneer" },
+                        { id: 479, name: "Rand Fishkin", company: "SparkToro", email: null, linkedin: "https://www.linkedin.com/in/randfishkin", bio: "Lost and Founder author" },
+                        { id: 478, name: "Sahil Lavingia", company: "Gumroad", email: null, linkedin: "https://www.linkedin.com/in/sahillavingia", bio: "Calm company" },
+                        { id: 480, name: "Nathan Barry", company: "ConvertKit", email: null, linkedin: "https://www.linkedin.com/in/nathanbarry", bio: "$30M ARR bootstrap" },
+                        { id: 477, name: "Justin Welsh", company: "Justin Welsh", email: null, linkedin: "https://www.linkedin.com/in/justinwelsh", bio: "Solo entrepreneur" },
+                        { id: 482, name: "Courtland Allen", company: "Indie Hackers", email: null, linkedin: "https://www.linkedin.com/in/courtland-allen-93203422", bio: "Indie Hackers" },
+                        { id: 483, name: "Pat Walls", company: "Starter Story", email: null, linkedin: "https://www.linkedin.com/in/patwalls", bio: "Starter Story" }
                     ],
                     track: {}
                 }
             },
+            computed: {
+                currentList() {
+                    return this.activeTab === 'main' ? this.mainList : this.discardedList;
+                }
+            },
             methods: {
                 save(id, f, v) {
-                    if (!this.track[id]) this.track[id] = {};
-                    this.track[id][f] = v;
+                    const key = this.activeTab === 'main' ? 'main' : 'discarded';
+                    if (!this.track[key]) this.track[key] = {};
+                    if (!this.track[key][id]) this.track[key][id] = {};
+                    this.track[key][id][f] = v;
                     localStorage.setItem('track', JSON.stringify(this.track));
                 },
                 downloadCSV() {
-                    let c = 'ID,Name,Company,LinkedIn,Bio,Conn,DM,Status\n';
-                    this.authors.forEach(a => {
-                        const t = this.track[a.id] || {};
-                        c += `${a.id},"${a.full_name}","${a.company}","${a.linkedin || ''}","${a.bio}","${t.conn ? 'Y' : 'N'}","${t.dm ? 'Y' : 'N'}","${t.status || ''}"\n`;
+                    const list = this.currentList;
+                    const listName = this.activeTab === 'main' ? 'Main' : 'Discarded';
+                    let c = 'ID,Name,Company,Email,LinkedIn,Bio,Conn,DM,Status\n';
+                    list.forEach(a => {
+                        const key = this.activeTab === 'main' ? 'main' : 'discarded';
+                        const t = (this.track[key] && this.track[key][a.id]) || {};
+                        c += `${a.id},"${a.name}","${a.company}","${a.email || ''}","${a.linkedin || ''}","${a.bio}","${t.conn ? 'Y' : 'N'}","${t.dm ? 'Y' : 'N'}","${t.status || ''}"\n`;
                     });
                     const b = new Blob([c], { type: 'text/csv' });
                     const u = URL.createObjectURL(b);
                     const l = document.createElement('a');
                     l.href = u;
-                    l.download = 'prospects.csv';
+                    l.download = `prospects-${listName.toLowerCase()}.csv`;
                     l.click();
                 }
             },
             mounted() {
                 const s = localStorage.getItem('track');
                 if (s) this.track = JSON.parse(s);
+
+                // Initialize tracking objects if they don't exist
+                if (!this.track.main) this.track.main = {};
+                if (!this.track.discarded) this.track.discarded = {};
             }
         }).mount('#app');
     </script>
