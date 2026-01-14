@@ -63,6 +63,23 @@ createApp({
             fetchAuthors();
         };
 
+        const toggleStatus = async (author, field, value) => {
+            // Optimistic update
+            author.pipeline[field] = value;
+
+            try {
+                await fetch(`/update_outreach_status/${author.id}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ field, value })
+                });
+            } catch (e) {
+                console.error(e);
+                alert("Failed to update status");
+                fetchAuthors(); // Revert on error
+            }
+        };
+
         onMounted(() => {
             fetchAuthors();
             setInterval(fetchAuthors, 2000); // Polling every 2s
@@ -70,7 +87,7 @@ createApp({
 
         return {
             authors, stats, discoveryQuery, showUpload, selectedAuthor, fileInput,
-            fetchAuthors, badgeClass, runDiscovery, openUpload, submitUpload, analyze, generate, sendNext
+            fetchAuthors, badgeClass, runDiscovery, openUpload, submitUpload, analyze, generate, sendNext, toggleStatus
         };
     }
 }).mount('#app');

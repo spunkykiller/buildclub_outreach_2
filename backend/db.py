@@ -94,9 +94,15 @@ def init_db():
                 email_generated BOOLEAN DEFAULT 0,
                 added_to_sheet BOOLEAN DEFAULT 0,
                 sent BOOLEAN DEFAULT 0,
+                connection_sent BOOLEAN DEFAULT 0,
+                dm_sent BOOLEAN DEFAULT 0,
+                response_status TEXT,
                 FOREIGN KEY(author_id) REFERENCES authors(id)
             )
         """)
+        
+        # Migrate Pipeline table (New)
+        _migrate_pipeline_table(conn)
 
         # Logs (New)
         conn.execute("""
@@ -136,6 +142,28 @@ def init_db():
         logging.error(f"Error initializing DB: {e}")
     finally:
         conn.close()
+
+def _migrate_pipeline_table(conn):
+    """Ensure new columns exist in pipeline_status table"""
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA table_info(pipeline_status)")
+    columns = [row[1] for row in cursor.fetchall()]
+    
+    new_cols = {
+        "connection_sent": "BOOLEAN DEFAULT 0",
+        "dm_sent": "BOOLEAN DEFAULT 0",
+        "response_status": "TEXT"
+    }
+    
+    for col_name, col_type in new_cols.items():
+        if col_name not in columns:
+            try:
+                logging.info(f"Migrating pipeline_status table: adding {col_name}")
+                conn.execute(f"ALTER TABLE pipeline_status ADD COLUMN {col_name} {col_type}")
+            except Exception as e:
+                logging.error(f"Failed to add column {col_name}: {e}")
+    conn.commit()
+
 
 def _migrate_authors_table(conn):
     """Ensure new columns exist in authors table"""

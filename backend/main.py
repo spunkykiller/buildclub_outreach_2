@@ -17,6 +17,11 @@ from .discovery.scraper import DiscoveryEngine
 from .analysis.analyzer import PDFAnalyzer
 from .email_engine.generator import EmailGenerator
 from .mailer.sender import Mailer
+from pydantic import BaseModel
+
+class PipelineUpdate(BaseModel):
+    field: str
+    value: str | bool
 
 app = FastAPI(title="Local Automation Dashboard")
 
@@ -46,7 +51,8 @@ def get_authors():
     # Fetch authors with status
     cursor.execute("""
         SELECT a.id, a.full_name, a.company, a.industry, a.email as primary_email, a.linkedin as linkedin_url, COALESCE(a.detailed_description, a.bio) as bio,
-               p.discovered, p.pdf_uploaded, p.analyzed, p.email_generated, p.sent
+               p.discovered, p.pdf_uploaded, p.analyzed, p.email_generated, p.sent,
+               p.connection_sent, p.dm_sent, p.response_status
         FROM authors a
         LEFT JOIN pipeline_status p ON a.id = p.author_id
     """)
@@ -73,7 +79,11 @@ def get_authors():
             'pdf_uploaded': bool(a['pdf_uploaded']),
             'analyzed': bool(a['analyzed']),
             'email_generated': bool(a['email_generated']),
-            'sent': bool(a['sent'])
+            'email_generated': bool(a['email_generated']),
+            'sent': bool(a['sent']),
+            'connection_sent': bool(a['connection_sent']),
+            'dm_sent': bool(a['dm_sent']),
+            'response_status': a['response_status']
         }
     
     conn.close()
@@ -177,6 +187,43 @@ def send_next_email():
     else:
         # Check why? Rate limit or empty queue.
         return {"status": "No email sent (Rate Limit or Queue Empty)"}
+
+@app.post("/update_outreach_status/{author_id}")
+def update_outreach_status(author_id: int, update: PipelineUpdate):
+    conn = get_connection()
+    
+    # Verify field is valid to prevent SQL injection or bad updates
+    valid_fields = ["connection_sent", "dm_sent", "response_status"]
+    if update.field not in valid_fields:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Invalid field")
+
+    # Values for boolean fields come as booleans or strings from frontend? 
+    # Pydantic handles some parsing, but SQL needs 0/1 for booleans usually in sqlite if not using adapters automatically,
+    # but sqlite3 adapt handles bool -> int usually. 
+    # Let's ensure we update correctly.
+    
+    query = f"UPDATE pipeline_status SET {update.field} = ? WHERE author_id = ?"
+    
+    # Upsert logic might be needed if pipeline_status doesn't exist for author?
+    # Our get_authors calls LEFT JOIN, so if it's NULL, we might fail here if row missing.
+    # However, seed/discovery should create the row. 
+    # Just in case, let's use INSERT OR IGNORE then UPDATE or UPSERT.
+    # Simple way: Try UPDATE, if no changes, INSERT. 
+    # Actually, let's assume row exists as per _fix_pipeline_status or creation flow.
+    # If not, we might need to create it.
+    
+    cursor = conn.cursor()
+    cursor.execute(query, (update.value, author_id))
+    
+    if cursor.rowcount == 0:
+        # Row might not exist
+        conn.execute("INSERT OR IGNORE INTO pipeline_status (author_id) VALUES (?)", (author_id,))
+        cursor.execute(query, (update.value, author_id))
+        
+    conn.commit()
+    conn.close()
+    return {"status": "Updated", "field": update.field, "value": update.value}
 
 @app.get("/stats", response_model=StatResponse)
 def get_stats():

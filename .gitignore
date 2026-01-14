@@ -7,9 +7,9 @@ env/
 venv/
 .env
 .venv
-env.bak
-venv.bak
+env.bak/
+venv.bak/
 local_system.db
 *.db
-.DS_Store
-.vscode/
+check_db_schema.py
+run_migration.py
