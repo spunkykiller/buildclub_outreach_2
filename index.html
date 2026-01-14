@@ -7,6 +7,16 @@
     <title>Build Club Outreach</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3"></script>
+    <style>
+        .sortable {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .sortable:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
 </head>
 
 <body class="bg-gray-100">
@@ -43,18 +53,30 @@
             <table class="w-full">
                 <thead class="bg-gray-50 border-b">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium">#</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium">Name</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium">Company</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium">Score</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium">Email</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium">Bio</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium">Tracking</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Company</th>
+                        <th @click="sortBy('score')"
+                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sortable">
+                            Score
+                            <span v-if="sortKey === 'score'">
+                                {{ sortOrder === 'desc' ? '⬇️' : '⬆️' }}
+                            </span>
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bio
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Tracking</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="(a, i) in currentList" :key="a.id" class="border-b hover:bg-gray-50">
-                        <td class="px-4 py-3 text-sm">{{ i + 1 }}</td>
+                    <tr v-for="(a, i) in sortedList" :key="a.id" class="border-b hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm">{{ a.id }}</td>
                         <td class="px-4 py-3">
                             <div class="font-medium text-sm">{{ a.name }}</div>
                             <a v-if="a.linkedin" :href="a.linkedin" target="_blank"
@@ -122,6 +144,8 @@
             data() {
                 return {
                     activeTab: 'main',
+                    sortKey: 'score',
+                    sortOrder: 'desc',
                     mainList: [
                         { id: 1, name: "Arvid Kahl", company: "FeedbackPanda", email: "arvid@thebootstrappedfounder.com", linkedin: "https://www.linkedin.com/in/arvidkahl", bio: "Founder of FeedbackPanda. Bootstrapped to $55k MRR. Writes 'Zero to Sold'. Very active in community.", score: 8, probability: "High" },
                         { id: 2, name: "Daniel Vassallo", company: "Small Bets", email: "daniel@smallbets.co", linkedin: "https://www.linkedin.com/in/danielvassallo", bio: "Ex-Amazon. Creator of 'Small Bets' community. Very responsive to genuine engagement.", score: 8, probability: "High" },
@@ -259,9 +283,26 @@
             computed: {
                 currentList() {
                     return this.activeTab === 'main' ? this.mainList : this.discardedList;
+                },
+                sortedList() {
+                    return [...this.currentList].sort((a, b) => {
+                        let modifier = this.sortOrder === 'desc' ? -1 : 1;
+                        if (this.sortKey === 'score') {
+                            return (Number(a.score) - Number(b.score)) * modifier;
+                        }
+                        return 0;
+                    });
                 }
             },
             methods: {
+                sortBy(key) {
+                    if (this.sortKey === key) {
+                        this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        this.sortKey = key;
+                        this.sortOrder = 'desc';
+                    }
+                },
                 save(id, f, v) {
                     const key = this.activeTab === 'main' ? 'main' : 'discarded';
                     if (!this.track[key]) this.track[key] = {};
