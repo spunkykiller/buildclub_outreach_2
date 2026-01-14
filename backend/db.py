@@ -2,6 +2,7 @@ import sqlite3
 import os
 from pathlib import Path
 import logging
+import tempfile
 
 # Set DB_PATH relative to project root (one level up from backend) usually, 
 # but for simplicity let's keep it in the root "local_system.db"
@@ -10,7 +11,7 @@ ROOT_DIR = Path(__file__).parent.parent
 ROOT_DIR = Path(__file__).parent.parent
 # Vercel (or safe fallback) DB Path
 if os.environ.get("VERCEL") or not os.access(ROOT_DIR, os.W_OK):
-    DB_PATH = os.getenv("DB_PATH", "/tmp/local_system.db")
+    DB_PATH = os.path.join(tempfile.gettempdir(), "local_system.db")
 else:
     DB_PATH = os.getenv("DB_PATH", str(ROOT_DIR / "local_system.db"))
 
