@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Build Club Outreach</title>
+    <link href="styles.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+
+<body class="bg-gray-100 text-gray-800 font-sans">
+    <div id="app" class="container mx-auto p-6">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">🚀 Build Club Outreach</h1>
+            <div class="flex gap-4">
+                <span class="bg-white px-4 py-2 rounded shadow text-sm">
+                    Emails Sent Today: <strong>{{ stats.emails_sent_today }}</strong>
+                </span>
+                <span class="bg-white px-4 py-2 rounded shadow text-sm">
+                    Pending: <strong>{{ stats.pending_emails }}</strong>
+                </span>
+            </div>
+        </header>
+
+        <!-- Actions -->
+        <div class="bg-white p-6 rounded shadow mb-8 flex gap-4">
+            <div class="flex-1">
+                <label class="block text-sm font-bold mb-2">Discovery Query</label>
+                <div class="flex gap-2">
+                    <input v-model="discoveryQuery" class="border rounded px-3 py-2 w-full"
+                        placeholder="Founders who wrote a book...">
+                    <button @click="runDiscovery"
+                        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Find</button>
+                </div>
+            </div>
+            <div class="flex-none flex items-end">
+                <button @click="sendNext" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">✉️ Send
+                    Next Email</button>
+            </div>
+        </div>
+
+        <!-- Main Table -->
+        <div class="bg-white rounded shadow overflow-hidden">
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            #</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Author</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Company</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Bio & Context
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Pipeline</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    <tr v-for="(author, index) in authors" :key="author.id">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ index + 1 }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <span class="font-medium text-gray-900">{{ author.full_name }}</span>
+                                <a v-if="author.linkedin_url" :href="author.linkedin_url" target="_blank"
+                                    class="ml-2 text-blue-500 hover:text-blue-700">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                        <path
+                                            d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.239-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                                    </svg>
+                                </a>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900 font-bold">{{ author.company }}</div>
+                            <div class="text-xs text-gray-500">
+                                <select class="mt-1 block max-w-xs border-gray-300 rounded text-xs bg-gray-50">
+                                    <option v-for="email in author.emails" :key="email">{{ email }}</option>
+                                </select>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm">
+                            <div class="font-medium">{{ author.book_title || '' }}</div>
+                            <div class="text-xs text-gray-500 mt-1">{{ author.bio || '-' }}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex gap-1">
+                                <span :class="badgeClass(author.pipeline.discovered)" title="Discovered">🔍</span>
+                                <span :class="badgeClass(author.pipeline.pdf_uploaded)" title="PDF">📄</span>
+                                <span :class="badgeClass(author.pipeline.analyzed)" title="AI Analyzed">🤖</span>
+                                <span :class="badgeClass(author.pipeline.email_generated)" title="Draft Ready">📝</span>
+                                <span :class="badgeClass(author.pipeline.sent)" title="Sent">✅</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm">
+                            <button v-if="!author.pipeline.pdf_uploaded" @click="openUpload(author)"
+                                class="text-blue-600 hover:text-blue-900 mr-2">Upload PDF</button>
+                            <button v-if="author.pipeline.pdf_uploaded && !author.pipeline.analyzed"
+                                @click="analyze(author.id)"
+                                class="text-purple-600 hover:text-purple-900 mr-2">Analyze</button>
+                            <button v-if="author.pipeline.analyzed && !author.pipeline.email_generated"
+                                @click="generate(author.id)" class="text-green-600 hover:text-green-900">Draft
+                                Email</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Upload Modal (Simulated) -->
+        <div v-if="showUpload" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div class="bg-white p-6 rounded shadow-lg w-96">
+                <h3 class="text-lg font-bold mb-4">Upload PDF for {{ selectedAuthor.full_name }}</h3>
+                <input type="file" ref="fileInput" class="mb-4">
+                <div class="flex justify-end gap-2">
+                    <button @click="showUpload = false" class="text-gray-500">Cancel</button>
+                    <button @click="submitUpload" class="bg-blue-600 text-white px-4 py-2 rounded">Upload</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+
+</html>
