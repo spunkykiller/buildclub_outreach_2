@@ -15,13 +15,17 @@
         <!-- Header -->
         <header class="flex justify-between items-center mb-8">
             <h1 class="text-3xl font-bold text-gray-900">🚀 Build Club Outreach</h1>
-            <div class="flex gap-4">
+            <div class="flex gap-4 items-center">
                 <span class="bg-white px-4 py-2 rounded shadow text-sm">
                     Emails Sent Today: <strong>{{ stats.emails_sent_today }}</strong>
                 </span>
                 <span class="bg-white px-4 py-2 rounded shadow text-sm">
                     Pending: <strong>{{ stats.pending_emails }}</strong>
                 </span>
+                <a href="/export_csv"
+                    class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm font-medium" download>
+                    📥 Download CSV
+                </a>
             </div>
         </header>
 

@@ -8,8 +8,20 @@
   ],
   "routes": [
     {
-      "src": "/(.*)",
+      "src": "/authors",
       "dest": "backend/main.py"
+    },
+    {
+      "src": "/stats",
+      "dest": "backend/main.py"
+    },
+    {
+      "src": "/export_csv",
+      "dest": "backend/main.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "frontend/$1"
     }
   ]
 }

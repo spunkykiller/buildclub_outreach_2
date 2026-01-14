@@ -9,12 +9,57 @@ createApp({
         const selectedAuthor = ref(null);
         const fileInput = ref(null);
 
-        const fetchAuthors = async () => {
-            const res = await fetch('/authors');
-            authors.value = await res.json();
+        // localStorage key for tracking
+        const STORAGE_KEY = 'buildclub_outreach_tracking';
 
-            const statsRes = await fetch('/stats');
-            stats.value = await statsRes.json();
+        // Load tracking data from localStorage
+        const loadTrackingData = () => {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                return saved ? JSON.parse(saved) : {};
+            } catch (e) {
+                console.error('Error loading tracking data:', e);
+                return {};
+            }
+        };
+
+        // Save tracking data to localStorage
+        const saveTrackingData = (tracking) => {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(tracking));
+            } catch (e) {
+                console.error('Error saving tracking data:', e);
+            }
+        };
+
+        const fetchAuthors = async () => {
+            try {
+                const res = await fetch('/authors');
+                const authorsData = await res.json();
+
+                // Load tracking from localStorage
+                const tracking = loadTrackingData();
+
+                // Merge server data with localStorage tracking
+                authors.value = authorsData.map(author => {
+                    const tracked = tracking[author.id] || {};
+                    return {
+                        ...author,
+                        pipeline: {
+                            ...author.pipeline,
+                            // Override with localStorage values if they exist
+                            connection_sent: tracked.connection_sent !== undefined ? tracked.connection_sent : author.pipeline.connection_sent,
+                            dm_sent: tracked.dm_sent !== undefined ? tracked.dm_sent : author.pipeline.dm_sent,
+                            response_status: tracked.response_status || author.pipeline.response_status
+                        }
+                    };
+                });
+
+                const statsRes = await fetch('/stats');
+                stats.value = await statsRes.json();
+            } catch (error) {
+                console.error('Error fetching authors:', error);
+            }
         };
 
         const badgeClass = (active) => {
@@ -64,9 +109,22 @@ createApp({
         };
 
         const toggleStatus = async (author, field, value) => {
-            // Optimistic update
+            // Optimistic update in UI
             author.pipeline[field] = value;
 
+            // Load current tracking
+            const tracking = loadTrackingData();
+
+            // Update tracking for this author
+            if (!tracking[author.id]) {
+                tracking[author.id] = {};
+            }
+            tracking[author.id][field] = value;
+
+            // Save to localStorage immediately
+            saveTrackingData(tracking);
+
+            // Try to update backend (optional - will fail gracefully on Vercel)
             try {
                 await fetch(`/update_outreach_status/${author.id}`, {
                     method: 'POST',
@@ -74,15 +132,15 @@ createApp({
                     body: JSON.stringify({ field, value })
                 });
             } catch (e) {
-                console.error(e);
-                alert("Failed to update status");
-                fetchAuthors(); // Revert on error
+                // Backend update failed, but localStorage already saved
+                console.log('Backend update unavailable, using localStorage only');
             }
         };
 
         onMounted(() => {
             fetchAuthors();
-            setInterval(fetchAuthors, 2000); // Polling every 2s
+            // Refresh less frequently to avoid overwhelming the (potentially serverless) backend
+            setInterval(fetchAuthors, 10000); // Every 10 seconds instead of 2
         });
 
         return {

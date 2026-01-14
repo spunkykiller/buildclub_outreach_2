@@ -1,6 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from typing import List
 import sqlite3
 import shutil
@@ -8,6 +9,8 @@ import os
 from pathlib import Path
 import asyncio
 from dotenv import load_dotenv
+import csv
+import io
 
 load_dotenv("config.env")
 
@@ -237,6 +240,91 @@ def get_stats():
     
     conn.close()
     return StatResponse(total_authors=total, emails_sent_today=sent_today, pending_emails=pending, zoho_health="OK")
+
+@app.get("/export_csv")
+def export_csv():
+    """Export all authors and their pipeline status to CSV"""
+    conn = get_connection()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    # Fetch all data
+    cursor.execute("""
+        SELECT 
+            a.id,
+            a.full_name,
+            a.company,
+            a.industry,
+            a.email,
+            a.linkedin,
+            a.country,
+            a.detailed_description as bio,
+            a.context,
+            a.created_at,
+            p.discovered,
+            p.pdf_uploaded,
+            p.analyzed,
+            p.email_generated,
+            p.sent,
+            p.connection_sent,
+            p.dm_sent,
+            p.response_status,
+            e.subject as email_subject,
+            e.status as email_status
+        FROM authors a
+        LEFT JOIN pipeline_status p ON a.id = p.author_id
+        LEFT JOIN emails e ON a.id = e.author_id
+        ORDER BY a.id
+    """)
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    # Create CSV in memory
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write header
+    writer.writerow([
+        'ID', 'Full Name', 'Company', 'Industry', 'Email', 'LinkedIn', 
+        'Country', 'Bio', 'Context', 'Created At',
+        'Discovered', 'PDF Uploaded', 'Analyzed', 'Email Generated', 'Sent',
+        'Connection Sent', 'DM Sent', 'Response Status',
+        'Email Subject', 'Email Status'
+    ])
+    
+    # Write data
+    for row in rows:
+        writer.writerow([
+            row['id'],
+            row['full_name'],
+            row['company'] or '',
+            row['industry'] or '',
+            row['email'] or '',
+            row['linkedin'] or '',
+            row['country'] or '',
+            row['bio'] or '',
+            row['context'] or '',
+            row['created_at'] or '',
+            'Yes' if row['discovered'] else 'No',
+            'Yes' if row['pdf_uploaded'] else 'No',
+            'Yes' if row['analyzed'] else 'No',
+            'Yes' if row['email_generated'] else 'No',
+            'Yes' if row['sent'] else 'No',
+            'Yes' if row['connection_sent'] else 'No',
+            'Yes' if row['dm_sent'] else 'No',
+            row['response_status'] or '',
+            row['email_subject'] or '',
+            row['email_status'] or ''
+        ])
+    
+    # Prepare response
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=buildclub_prospects.csv"}
+    )
 
 from .scheduler import start_scheduler
 
