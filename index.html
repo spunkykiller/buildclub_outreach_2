@@ -21,15 +21,37 @@
 
 <body class="bg-gray-100">
     <div id="app" class="container mx-auto p-6">
-        <header class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold">🚀 Build Club Outreach</h1>
-            <div class="flex gap-4 items-center">
-                <span class="bg-white px-4 py-2 rounded shadow text-sm">
-                    Total: <strong>{{ currentList.length }}</strong>
-                </span>
-                <button @click="downloadCSV" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    📥 Download CSV
-                </button>
+        <header class="flex flex-col gap-4 mb-6">
+            <div class="flex justify-between items-center">
+                <h1 class="text-3xl font-bold">🚀 Build Club Outreach</h1>
+                <div class="flex gap-4 items-center">
+                    <button @click="downloadCSV" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        📥 Download CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mini-Stats Dashboard -->
+            <div class="grid grid-cols-4 gap-4 bg-white p-4 rounded shadow text-sm">
+                <div class="flex flex-col">
+                    <span class="text-gray-500">Total Prospects</span>
+                    <span class="text-2xl font-bold">{{ currentList.length }}</span>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-gray-500">Contacted</span>
+                    <span class="text-2xl font-bold text-blue-600">{{ stats.contacted }}</span>
+                    <span class="text-xs text-gray-400">Connection or DM sent</span>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-gray-500">Replies</span>
+                    <span class="text-2xl font-bold text-amber-600">{{ stats.replies }}</span>
+                    <span class="text-xs text-gray-400">Any response received</span>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-gray-500">Agreements</span>
+                    <span class="text-2xl font-bold text-green-600">{{ stats.agreements }}</span>
+                    <span class="text-xs text-gray-400">Positive outcome</span>
+                </div>
             </div>
         </header>
 
@@ -49,9 +71,9 @@
             </nav>
         </div>
 
-        <div class="bg-white rounded shadow overflow-x-auto">
-            <table class="w-full">
-                <thead class="bg-gray-50 border-b">
+        <div class="bg-white rounded shadow overflow-x-auto h-[600px] overflow-y-scroll relative">
+            <table class="w-full relative">
+                <thead class="bg-gray-50 border-b sticky top-0 z-10 shadow-sm">
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#
                         </th>
@@ -95,7 +117,7 @@
                         <td class="px-4 py-3 text-sm">
                             <div v-if="a.email" class="flex items-center gap-2">
                                 <span class="text-gray-600">{{ a.email }}</span>
-                                <button @click="copyEmail(a.email)" class="p-1 hover:bg-gray-100 rounded"
+                                <button @click="copyEmail(a.email)" class="p-1 hover:bg-gray-100 rounded group relative"
                                     title="Copy email">
                                     <svg class="w-4 h-4 text-gray-500 hover:text-blue-600" fill="none"
                                         stroke="currentColor" viewBox="0 0 24 24">
@@ -103,6 +125,14 @@
                                             d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                     </svg>
                                 </button>
+                                <a :href="`mailto:${a.email}?subject=Quick question&body=Hi ${a.name.split(' ')[0]},`"
+                                    class="p-1 hover:bg-gray-100 rounded" title="Send email">
+                                    <svg class="w-4 h-4 text-gray-500 hover:text-green-600" fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                    </svg>
+                                </a>
                             </div>
                             <span v-else class="text-gray-400">-</span>
                         </td>
@@ -126,6 +156,7 @@
                                     @change="save(a.id,'status',$event.target.value)"
                                     class="text-xs border rounded p-1">
                                     <option value="">Status...</option>
+                                    <option value="replied">Replied</option>
                                     <option value="agreed">Agreed</option>
                                     <option value="rejected">Rejected</option>
                                 </select>
@@ -341,6 +372,26 @@
                         }
                         return 0;
                     });
+                },
+                stats() {
+                    let totalContacted = 0;
+                    let totalReplies = 0;
+                    let totalAgreements = 0;
+                    const key = this.activeTab === 'main' ? 'main' : 'discarded';
+                    const list = this.currentList;
+
+                    list.forEach(item => {
+                        const t = (this.track[key] && this.track[key][item.id]) || {};
+                        if (t.conn || t.dm) totalContacted++;
+                        if (t.status === 'replied' || t.status === 'agreed' || t.status === 'rejected') totalReplies++;
+                        if (t.status === 'agreed') totalAgreements++;
+                    });
+
+                    return {
+                        contacted: totalContacted,
+                        replies: totalReplies,
+                        agreements: totalAgreements
+                    };
                 }
             },
             methods: {
