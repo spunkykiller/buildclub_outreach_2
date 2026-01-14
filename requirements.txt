@@ -1,4 +1,4 @@
-playwright
+# playwright
 beautifulsoup4
 pymupdf
 ollama
