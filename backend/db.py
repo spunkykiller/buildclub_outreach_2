@@ -7,7 +7,14 @@ import logging
 # but for simplicity let's keep it in the root "local_system.db"
 # Since we are running from 'backend' or root, let's be robust.
 ROOT_DIR = Path(__file__).parent.parent
-DB_PATH = os.getenv("DB_PATH", str(ROOT_DIR / "local_system.db"))
+ROOT_DIR = Path(__file__).parent.parent
+# Vercel (or safe fallback) DB Path
+if os.environ.get("VERCEL") or not os.access(ROOT_DIR, os.W_OK):
+    DB_PATH = os.getenv("DB_PATH", "/tmp/local_system.db")
+else:
+    DB_PATH = os.getenv("DB_PATH", str(ROOT_DIR / "local_system.db"))
+
+print(f"Using DB_PATH: {DB_PATH}")
 
 def get_connection():
     conn = sqlite3.connect(DB_PATH)

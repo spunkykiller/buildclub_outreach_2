@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from playwright.async_api import async_playwright
+# from playwright.async_api import async_playwright # Lazy import instead
 from bs4 import BeautifulSoup
 import sqlite3
 import os
@@ -15,6 +15,13 @@ class DiscoveryEngine:
 
     async def run_discovery(self, query="Founder who wrote a book"):
         logging.info(f"Starting discovery with query: {query}")
+        logging.info(f"Starting discovery with query: {query}")
+        try:
+            from playwright.async_api import async_playwright
+        except ImportError:
+            logging.error("Playwright is not installed. Discovery skipped.")
+            return
+
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             page = await browser.new_page()
