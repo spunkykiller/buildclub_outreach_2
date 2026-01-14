@@ -1,91 +1,64 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Build Club Outreach</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vue@3"></script>
 </head>
 
-<body class="bg-gray-100 text-gray-800 font-sans">
+<body class="bg-gray-100">
     <div id="app" class="container mx-auto p-6">
-        <!-- Header -->
         <header class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-900">🚀 Build Club Outreach</h1>
+            <h1 class="text-3xl font-bold">🚀 Build Club Outreach</h1>
             <div class="flex gap-4 items-center">
                 <span class="bg-white px-4 py-2 rounded shadow text-sm">
-                    Total Prospects: <strong>{{ authors.length }}</strong>
+                    Total: <strong>{{ authors.length }}</strong>
                 </span>
-                <button @click="downloadCSV"
-                    class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm font-medium">
-                    📥 Download CSV
+                <button @click="downloadCSV" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    📥 CSV
                 </button>
             </div>
         </header>
 
-        <!-- Main Table -->
-        <div class="bg-white rounded shadow overflow-hidden">
+        <div class="bg-white rounded shadow">
             <table class="w-full">
                 <thead class="bg-gray-50 border-b">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Author</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Company</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bio &
-                            Context</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Outreach Status</th>
+                        <th class="px-4 py-3 text-left text-xs">#</th>
+                        <th class="px-4 py-3 text-left text-xs">Name</th>
+                        <th class="px-4 py-3 text-left text-xs">Company</th>
+                        <th class="px-4 py-3 text-left text-xs">Bio</th>
+                        <th class="px-4 py-3 text-left text-xs">Tracking</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200">
-                    <tr v-for="(author, index) in authors" :key="author.id">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ index + 1 }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center">
-                                <span class="font-medium text-gray-900">{{ author.full_name }}</span>
-                                <a v-if="author.linkedin" :href="author.linkedin" target="_blank"
-                                    class="ml-2 text-blue-500 hover:text-blue-700">
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                        <path
-                                            d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.239-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
-                                    </svg>
-                                </a>
-                            </div>
+                <tbody>
+                    <tr v-for="(a, i) in authors" :key="a.id" class="border-b">
+                        <td class="px-4 py-3">{{ i + 1 }}</td>
+                        <td class="px-4 py-3">
+                            <div class="font-medium">{{ a.full_name }}</div>
+                            <a v-if="a.linkedin" :href="a.linkedin" target="_blank"
+                                class="text-blue-500 text-xs">LinkedIn</a>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-900 font-bold">{{ author.company }}</div>
-                        </td>
-                        <td class="px-6 py-4 text-sm">
-                            <div class="text-xs text-gray-500 mt-1">{{ author.bio || '-' }}</div>
-                            <div class="text-xs text-gray-400 mt-1 italic">{{ author.context || '' }}</div>
-                        </td>
-                        <td class="px-6 py-4 text-xs">
-                            <div class="flex flex-col gap-1">
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" :checked="tracking[author.id]?.connection_sent"
-                                        @change="updateTracking(author.id, 'connection_sent', $event.target.checked)">
-                                    <span>Conn. Sent</span>
-                                </label>
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" :checked="tracking[author.id]?.dm_sent"
-                                        @change="updateTracking(author.id, 'dm_sent', $event.target.checked)">
-                                    <span>Msg Sent</span>
-                                </label>
-                                <div class="mt-1">
-                                    <select :value="tracking[author.id]?.response_status || ''"
-                                        @change="updateTracking(author.id, 'response_status', $event.target.value)"
-                                        class="border rounded text-xs p-1">
-                                        <option value="">Status...</option>
-                                        <option value="agreed">Agreed</option>
-                                        <option value="rejected">Rejected</option>
-                                    </select>
-                                </div>
-                            </div>
+                        <td class="px-4 py-3">{{ a.company }}</td>
+                        <td class="px-4 py-3 text-sm">{{ a.bio }}</td>
+                        <td class="px-4 py-3">
+                            <label class="flex gap-2 text-xs">
+                                <input type="checkbox" :checked="track[a.id]?.conn"
+                                    @change="save(a.id,'conn',$event.target.checked)">Conn
+                            </label>
+                            <label class="flex gap-2 text-xs">
+                                <input type="checkbox" :checked="track[a.id]?.dm"
+                                    @change="save(a.id,'dm',$event.target.checked)">DM
+                            </label>
+                            <select :value="track[a.id]?.status||''" @change="save(a.id,'status',$event.target.value)"
+                                class="text-xs border rounded mt-1">
+                                <option value="">-</option>
+                                <option value="agreed">✓</option>
+                                <option value="rejected">✗</option>
+                            </select>
                         </td>
                     </tr>
                 </tbody>
@@ -93,41 +66,70 @@
         </div>
     </div>
 
-    <script>
-        const { createApp, ref, onMounted, reactive } = Vue;
-
-        const PROSPECTS_DATA = [{ "id": 573, "full_name": "Jason Fried", "company": "37signals", "linkedin": "https://www.linkedin.com/in/jason-fried", "bio": "Co-founder of Basecamp/37signals. Proponent of calm companies and remote work.", "context": "your philosophy on calm companies and Rework" }, { "id": 574, "full_name": "David Heinemeier Hansson", "company": "37signals", "linkedin": "https://www.linkedin.com/in/david-heinemeier-hansson-374b18221", "bio": "Co-founder of Basecamp. Creator of Ruby on Rails. Outspoken critic of big tech monopolies.", "context": "your views on remote work and building sustainable software businesses" }, { "id": 575, "full_name": "Paul Jarvis", "company": "Fathom Analytics", "linkedin": "https://www.linkedin.com/in/pauljarvis", "bio": "Designer and writer. Co-founder of Fathom Analytics. Advocates for staying small and profitable.", "context": "the concept of Company of One and staying small by choice" }, { "id": 576, "full_name": "Ash Maurya", "company": "LEANSTACK", "linkedin": "https://www.linkedin.com/in/ashmaurya", "bio": "Creator of the Lean Canvas. Focuses on systematic scaling and problem/solution fit.", "context": "your work on the Lean Canvas and Running Lean" }, { "id": 577, "full_name": "Nir Eyal", "company": "NirAndFar", "linkedin": "https://www.linkedin.com/in/nireyal", "bio": "Author and lecturer. Expert on habit-forming technology and distraction.", "context": "your research in Hooked and Indistractable" }, { "id": 578, "full_name": "Marty Neumeier", "company": "Liquid Agency", "linkedin": "https://www.linkedin.com/in/martyneumeier", "bio": "Brand expert. Focuses on the gap between business strategy and design.", "context": "your insights on branding in The Brand Gap" }, { "id": 579, "full_name": "Lou Downe", "company": "School of Good Services", "linkedin": null, "bio": "Service design expert. Former Design Director of the UK Government.", "context": "your principles of service design in Good Services" }, { "id": 580, "full_name": "April Dunford", "company": "Ambient Strategy", "linkedin": "https://www.linkedin.com/in/aprildunford", "bio": "Positioning expert. Helps B2B tech companies position their products.", "context": "your framework for positioning in Obviously Awesome" }, { "id": 581, "full_name": "Michele Hansen", "company": "Geocodio", "linkedin": null, "bio": "Co-founder of Geocodio. Expert on customer research and empathy in business.", "context": "your approach to customer research in Deploy Empathy" }, { "id": 582, "full_name": "Adii Pienaar", "company": "Cogsy", "linkedin": null, "bio": "Founder of WooCommerce (sold) and Cogsy. Writes about work-life balance and profitability.", "context": "your perspective on life profitability and building sustainable ventures" }, { "id": 583, "full_name": "Gabriel Weinberg", "company": "DuckDuckGo", "linkedin": "https://www.linkedin.com/in/gabrielweinberg", "bio": "CEO of DuckDuckGo. Co-author of Traction, a framework for startup growth.", "context": "the Traction framework and building privacy-focused tech" }, { "id": 584, "full_name": "Justin Mares", "company": "Kettle & Fire", "linkedin": null, "bio": "Co-author of Traction. Founder of Kettle & Fire and Perfect Keto.", "context": "your insights in Traction and experience in D2C" }, { "id": 585, "full_name": "Eric Ries", "company": "Long-Term Stock Exchange", "linkedin": "https://www.linkedin.com/in/eries", "bio": "Author of The Lean Startup. CEO of Long-Term Stock Exchange. Revolutionized startup methodology.", "context": "the impact of The Lean Startup and your new work with LTSE" }, { "id": 586, "full_name": "Ben Horowitz", "company": "Andreessen Horowitz", "linkedin": "https://www.linkedin.com/in/benhorowitz", "bio": "Co-founder of a16z. Former CEO of Opsware. Writes about the psychological toll of leadership.", "context": "the lessons in The Hard Thing About Hard Things" }, { "id": 587, "full_name": "Jessica Livingston", "company": "Y Combinator", "linkedin": "https://www.linkedin.com/in/jessicalivingston", "bio": "Co-founder of Y Combinator. Interviewed hundreds of founders.", "context": "your interviews in Founders at Work and role at YC" }, { "id": 588, "full_name": "Chris Guillebeau", "company": "The Art of Non-Conformity", "linkedin": "https://www.linkedin.com/in/chrisguillebeau", "bio": "Author and traveler. Focuses on micro-businesses and freedom.", "context": "the stories in The $100 Startup" }, { "id": 589, "full_name": "MJ DeMarco", "company": "The Fastlane Forum", "linkedin": "https://www.linkedin.com/in/mj-demarco-9b0445", "bio": "Founder of Limos.com (sold). Writes about wealth creation and entrepreneurship.", "context": "your unvarnished truth in The Millionaire Fastlane" }, { "id": 590, "full_name": "Dan Norris", "company": "WP Curve", "linkedin": null, "bio": "Founder of WP Curve (sold to GoDaddy). Advocate for launching quickly.", "context": "the methodology in The 7 Day Startup" }, { "id": 591, "full_name": "Allan Dib", "company": "Successwise", "linkedin": null, "bio": "Serial entrepreneur and marketer. Simplifies marketing for small businesses.", "context": "the simplicity of The 1-Page Marketing Plan" }, { "id": 592, "full_name": "Alex Hormozi", "company": "Acquisition.com", "linkedin": "https://www.linkedin.com/in/alexanderhormozi", "bio": "Founder of GymLaunch. Expert on offers and scaling service businesses.", "context": "your framework for creating offers in $100M Offers" }, { "id": 474, "full_name": "Arvid Kahl", "company": "FeedbackPanda", "linkedin": "https://www.linkedin.com/in/arvidkahl", "bio": "Built and sold FeedbackPanda. Writes extensively about bootstrapping.", "context": "building in public" }, { "id": 475, "full_name": "Daniel Vassallo", "company": "Small Bets", "linkedin": "https://www.linkedin.com/in/danielvassallo", "bio": "Ex-Amazon engineer. Advocates for indie lifestyle.", "context": "small bets approach" }, { "id": 476, "full_name": "Pieter Levels", "company": "Nomad List", "linkedin": "https://www.linkedin.com/in/levelspieter", "bio": "Indie maker who built 40+ startups.", "context": "rapid shipping" }, { "id": 481, "full_name": "Rob Walling", "company": "TinySeed", "linkedin": "https://www.linkedin.com/in/robwalling", "bio": "Founder of Drip (sold) and TinySeed. Pioneer of bootstrapped SaaS.", "context": "bootstrapped SaaS" }, { "id": 479, "full_name": "Rand Fishkin", "company": "SparkToro", "linkedin": "https://www.linkedin.com/in/randfishkin", "bio": "Founder of Moz and SparkToro. Transparent about VC realities.", "context": "Lost and Founder" }, { "id": 478, "full_name": "Sahil Lavingia", "company": "Gumroad", "linkedin": "https://www.linkedin.com/in/sahillavingia", "bio": "Founder of Gumroad. Chose profitability over unicorn status.", "context": "calm company approach" }, { "id": 480, "full_name": "Nathan Barry", "company": "ConvertKit", "linkedin": "https://www.linkedin.com/in/nathanbarry", "bio": "Built ConvertKit from $0 to $30M ARR serving creators.", "context": "serving creators" }, { "id": 477, "full_name": "Justin Welsh", "company": "Justin Welsh", "linkedin": "https://www.linkedin.com/in/justinwelsh", "bio": "Solo entrepreneur and creator educator.", "context": "solo business" }, { " id": 482, "full_name": "Courtland Allen", "company": "Indie Hackers", "linkedin": "https://www.linkedin.com/in/courtland-allen-93203422", "bio": "Founder of Indie Hackers.", "context": "indie hacker community" }, { "id": 483, "full_name": "Pat Walls", "company": "Starter Story", "linkedin": "https://www.linkedin.com/in/patwalls", "bio": "Founder of Starter Story.", "context": "bootstrapped stories" }];
+    <script type="module">
+        const { createApp } = Vue;
 
         createApp({
-            setup() {
-                const authors = ref(PROSPECTS_DATA);
-                const tracking = reactive(JSON.parse(localStorage.getItem('buildclub_tracking') || '{}'));
-
-                const updateTracking = (authorId, field, value) => {
-                    if (!tracking[authorId]) {
-                        tracking[authorId] = {};
-                    }
-                    tracking[authorId][field] = value;
-                    localStorage.setItem('buildclub_tracking', JSON.stringify(tracking));
-                };
-
-                const downloadCSV = () => {
-                    let csv = 'ID,Name,Company,LinkedIn,Bio,Context,Conn. Sent,Msg Sent,Response Status\n';
-                    authors.value.forEach(author => {
-                        const track = tracking[author.id] || {};
-                        csv += `${author.id},"${author.full_name}","${author.company || ''}","${author.linkedin || ''}","${(author.bio || '').replace(/"/g, '""')}","${(author.context || '').replace(/"/g, '"")}","${track.connection_sent ? 'Yes' : 'No'}","${track.dm_sent ? 'Yes' : 'No'}","${track.response_status || ''}"\n`;
+            data() {
+                return {
+                    authors: [
+                        { id: 573, full_name: "Jason Fried", company: "37signals", linkedin: "https://www.linkedin.com/in/jason-fried", bio: "Co-founder of Basecamp. Calm companies advocate" },
+                        { id: 574, full_name: "David Heinemeier Hansson", company: "37signals", linkedin: "https://www.linkedin.com/in/david-heinemeier-hansson-374b18221", bio: "Creator of Ruby on Rails" },
+                        { id: 575, full_name: "Paul Jarvis", company: "Fathom Analytics", linkedin: "https://www.linkedin.com/in/pauljarvis", bio: "Company of One author" },
+                        { id: 576, full_name: "Ash Maurya", company: "LEANSTACK", linkedin: "https://www.linkedin.com/in/ashmaurya", bio: "Lean Canvas creator" },
+                        { id: 577, full_name: "Nir Eyal", company: "NirAndFar", linkedin: "https://www.linkedin.com/in/nireyal", bio: "Hooked author" },
+                        { id: 578, full_name: "Marty Neumeier", company: "Liquid Agency", linkedin: "https://www.linkedin.com/in/martyneumeier", bio: "The Brand Gap author" },
+                        { id: 579, full_name: "Lou Downe", company: "School of Good Services", linkedin: null, bio: "Service design expert" },
+                        { id: 580, full_name: "April Dunford", company: "Ambient Strategy", linkedin: "https://www.linkedin.com/in/aprildunford", bio: "Positioning expert" },
+                        { id: 581, full_name: "Michele Hansen", company: "Geocodio", linkedin: null, bio: "Deploy Empathy author" },
+                        { id: 582, full_name: "Adii Pienaar", company: "Cogsy", linkedin: null, bio: "WooCommerce founder" },
+                        { id: 583, full_name: "Gabriel Weinberg", company: "DuckDuckGo", linkedin: "https://www.linkedin.com/in/gabrielweinberg", bio: "Traction co-author" },
+                        { id: 584, full_name: "Justin Mares", company: "Kettle & Fire", linkedin: null, bio: "Traction co-author" },
+                        { id: 585, full_name: "Eric Ries", company: "LTSE", linkedin: "https://www.linkedin.com/in/eries", bio: "Lean Startup author" },
+                        { id: 586, full_name: "Ben Horowitz", company: "a16z", linkedin: "https://www.linkedin.com/in/benhorowitz", bio: "Hard Thing About Hard Things author" },
+                        { id: 587, full_name: "Jessica Livingston", company: "Y Combinator", linkedin: "https://www.linkedin.com/in/jessicalivingston", bio: "Founders at Work author" },
+                        { id: 588, full_name: "Chris Guillebeau", company: "Art of Non-Conformity", linkedin: "https://www.linkedin.com/in/chrisguillebeau", bio: "$100 Startup author" },
+                        { id: 589, full_name: "MJ DeMarco", company: "Fastlane Forum", linkedin: "https://www.linkedin.com/in/mj-demarco-9b0445", bio: "Millionaire Fastlane author" },
+                        { id: 590, full_name: "Dan Norris", company: "WP Curve", linkedin: null, bio: "7 Day Startup author" },
+                        { id: 591, full_name: "Allan Dib", company: "Successwise", linkedin: null, bio: "1-Page Marketing Plan author" },
+                        { id: 592, full_name: "Alex Hormozi", company: "Acquisition.com", linkedin: "https://www.linkedin.com/in/alexanderhormozi", bio: "$100M Offers author" },
+                        { id: 474, full_name: "Arvid Kahl", company: "FeedbackPanda", linkedin: "https://www.linkedin.com/in/arvidkahl", bio: "Bootstrapping expert" },
+                        { id: 475, full_name: "Daniel Vassallo", company: "Small Bets", linkedin: "https://www.linkedin.com/in/danielvassallo", bio: "Small bets approach" },
+                        { id: 476, full_name: "Pieter Levels", company: "Nomad List", linkedin: "https://www.linkedin.com/in/levelspieter", bio: "40+ startups" },
+                        { id: 481, full_name: "Rob Walling", company: "TinySeed", linkedin: "https://www.linkedin.com/in/robwalling", bio: "Bootstrapped SaaS pioneer" },
+                        { id: 479, full_name: "Rand Fishkin", company: "SparkToro", linkedin: "https://www.linkedin.com/in/randfishkin", bio: "Lost and Founder author" },
+                        { id: 478, full_name: "Sahil Lavingia", company: "Gumroad", linkedin: "https://www.linkedin.com/in/sahillavingia", bio: "Calm company" },
+                        { id: 480, full_name: "Nathan Barry", company: "ConvertKit", linkedin: "https://www.linkedin.com/in/nathanbarry", bio: "$30M ARR bootstrap" },
+                        { id: 477, full_name: "Justin Welsh", company: "Justin Welsh", linkedin: "https://www.linkedin.com/in/justinwelsh", bio: "Solo entrepreneur" },
+                        { id: 482, full_name: "Courtland Allen", company: "Indie Hackers", linkedin: "https://www.linkedin.com/in/courtland-allen-93203422", bio: "Indie Hackers" },
+                        { id: 483, full_name: "Pat Walls", company: "Starter Story", linkedin: "https://www.linkedin.com/in/patwalls", bio: "Starter Story" }
+                    ],
+                    track: {}
+                }
+            },
+            methods: {
+                save(id, f, v) {
+                    if (!this.track[id]) this.track[id] = {};
+                    this.track[id][f] = v;
+                    localStorage.setItem('track', JSON.stringify(this.track));
+                },
+                downloadCSV() {
+                    let c = 'ID,Name,Company,LinkedIn,Bio,Conn,DM,Status\n';
+                    this.authors.forEach(a => {
+                        const t = this.track[a.id] || {};
+                        c += `${a.id},"${a.full_name}","${a.company}","${a.linkedin || ''}","${a.bio}","${t.conn ? 'Y' : 'N'}","${t.dm ? 'Y' : 'N'}","${t.status || ''}"\n`;
                     });
-                    
-                    const blob = new Blob([csv], { type: 'text/csv' });
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'buildclub_prospects.csv';
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                };
-
-                return { authors, tracking, updateTracking, downloadCSV };
+                    const b = new Blob([c], { type: 'text/csv' });
+                    const u = URL.createObjectURL(b);
+                    const l = document.createElement('a');
+                    l.href = u;
+                    l.download = 'prospects.csv';
+                    l.click();
+                }
+            },
+            mounted() {
+                const s = localStorage.getItem('track');
+                if (s) this.track = JSON.parse(s);
             }
         }).mount('#app');
     </script>
