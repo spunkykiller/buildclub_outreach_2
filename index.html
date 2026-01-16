@@ -99,7 +99,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="(a, i) in sortedList" :key="a.id" class="border-b hover:bg-gray-50">
+                    <tr v-for="(a, i) in sortedList" :key="a.id" :class="['border-b', rowClass(a)]">
                         <td class="px-4 py-3 text-sm">{{ i + 1 }}</td>
                         <td class="px-4 py-3">
                             <div class="font-medium text-sm">{{ a.name }}</div>
@@ -2198,6 +2198,17 @@
                 }
             },
             methods: {
+                rowClass(a) {
+                    const key = this.activeTab === 'main' ? 'main' : 'discarded';
+                    if (!this.track[key]) return 'hover:bg-gray-50';
+                    const t = this.track[key][a.id] || {};
+                    if (t.status === 'rejected') return 'bg-red-50';
+                    if (t.status === 'agreed') return 'bg-blue-200';
+                    if (t.status === 'replied') return 'bg-blue-50';
+                    if (t.dm) return 'bg-green-200';
+                    if (t.conn) return 'bg-green-50';
+                    return 'hover:bg-gray-50';
+                },
                 sortBy(key) {
                     if (this.sortKey === key) {
                         this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
