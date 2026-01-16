@@ -36,6 +36,10 @@
                         class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 shadow-sm transition-colors">
                         📥 Download CSV
                     </button>
+                    <button @click="resetAll"
+                        class="bg-red-100 text-red-600 border border-red-200 px-4 py-2 rounded hover:bg-red-200 shadow-sm transition-colors text-sm font-medium flex items-center gap-2">
+                        🔄 Reset All
+                    </button>
                 </div>
             </div>
 
@@ -2315,6 +2319,19 @@
                     }).catch(err => {
                         alert('Failed to copy email');
                     });
+                },
+                resetAll() {
+                    if (confirm('⚠️ ARE YOU SURE?\n\nThis will reset ALL progress (checkmarks, statuses) for ALL prospects.\n\nThis action cannot be undone.')) {
+                        this.track = { main: {}, discarded: {} };
+                        localStorage.setItem('outreach_track_v2', JSON.stringify(this.track));
+
+                        // Show success toast
+                        const toast = document.createElement('div');
+                        toast.className = 'fixed bottom-4 right-4 bg-red-600 text-white px-6 py-3 rounded shadow-lg z-50';
+                        toast.textContent = '🔄 All data has been reset.';
+                        document.body.appendChild(toast);
+                        setTimeout(() => toast.remove(), 3000);
+                    }
                 },
                 copyTemplate(num) {
                     const templateKey = `template${num}`;
