@@ -25,7 +25,15 @@
             <div class="flex justify-between items-center">
                 <h1 class="text-3xl font-bold">🚀 Build Club Outreach</h1>
                 <div class="flex gap-4 items-center">
-                    <button @click="downloadCSV" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    <select v-model="sortKey"
+                        class="border rounded px-2 py-2 text-sm bg-white hover:border-blue-500 transition-colors cursor-pointer">
+                        <option value="score">Sort: Score</option>
+                        <option value="status">Sort: Status</option>
+                        <option value="dm">Sort: Msg Sent</option>
+                        <option value="conn">Sort: Conn Sent</option>
+                    </select>
+                    <button @click="downloadCSV"
+                        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 shadow-sm transition-colors">
                         📥 Download CSV
                     </button>
                 </div>
@@ -109,9 +117,9 @@
                         <td class="px-4 py-3 text-sm">{{ a.company }}</td>
                         <td class="px-4 py-3 whitespace-nowrap">
                             <span :class="{
-                                'bg-green-100 text-green-800': a.score >= 7,
-                                'bg-yellow-100 text-yellow-800': a.score >= 5 && a.score < 7,
-                                'bg-red-100 text-red-800': a.score < 5
+                                'bg-green-200 text-green-900': a.score >= 7,
+                                'bg-yellow-200 text-yellow-900': a.score >= 5 && a.score < 7,
+                                'bg-red-200 text-red-900': a.score < 5
                             }" class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border">
                                 {{ a.score }}/10
                             </span>
@@ -144,7 +152,7 @@
                         </td>
                         <td class="px-4 py-3 text-center">
                             <span v-if="a.yc_directory"
-                                class="px-2 py-1 text-xs font-semibold bg-orange-100 text-orange-800 rounded-full border border-orange-300">
+                                class="px-2 py-1 text-xs font-semibold bg-orange-200 text-orange-900 rounded-full border border-orange-300">
                                 {{ a.yc_batch }}
                             </span>
                             <span v-else class="text-gray-400">-</span>
@@ -2173,6 +2181,24 @@
                         if (this.sortKey === 'score') {
                             return (Number(a.score) - Number(b.score)) * modifier;
                         }
+
+                        const key = this.activeTab === 'main' ? 'main' : 'discarded';
+                        const tA = (this.track[key] && this.track[key][a.id]) || {};
+                        const tB = (this.track[key] && this.track[key][b.id]) || {};
+
+                        if (this.sortKey === 'status') {
+                            const statusOrder = { 'agreed': 4, 'replied': 3, 'rejected': 2, '': 1 };
+                            const sA = statusOrder[tA.status || ''] || 0;
+                            const sB = statusOrder[tB.status || ''] || 0;
+                            if (sA !== sB) return (sA - sB) * modifier;
+                            return (Number(a.score) - Number(b.score)) * -1; // Tie-break by score
+                        }
+                        if (this.sortKey === 'dm') {
+                            return ((tA.dm ? 1 : 0) - (tB.dm ? 1 : 0)) * modifier;
+                        }
+                        if (this.sortKey === 'conn') {
+                            return ((tA.conn ? 1 : 0) - (tB.conn ? 1 : 0)) * modifier;
+                        }
                         return 0;
                     });
                 },
@@ -2202,12 +2228,12 @@
                     const key = this.activeTab === 'main' ? 'main' : 'discarded';
                     if (!this.track[key]) return 'hover:bg-gray-50';
                     const t = this.track[key][a.id] || {};
-                    if (t.status === 'rejected') return 'bg-red-50';
-                    if (t.status === 'agreed') return 'bg-blue-200';
-                    if (t.status === 'replied') return 'bg-blue-50';
-                    if (t.dm) return 'bg-green-200';
-                    if (t.conn) return 'bg-green-50';
-                    return 'hover:bg-gray-50';
+                    if (t.status === 'rejected') return 'bg-red-200';
+                    if (t.status === 'agreed') return 'bg-green-300';
+                    if (t.status === 'replied') return 'bg-blue-200';
+                    if (t.dm) return 'bg-green-300';
+                    if (t.conn) return 'bg-green-200';
+                    return 'hover:bg-gray-100';
                 },
                 sortBy(key) {
                     if (this.sortKey === key) {
@@ -2222,7 +2248,7 @@
                     if (!this.track[key]) this.track[key] = {};
                     if (!this.track[key][id]) this.track[key][id] = {};
                     this.track[key][id][f] = v;
-                    localStorage.setItem('track', JSON.stringify(this.track));
+                    localStorage.setItem('outreach_track_v2', JSON.stringify(this.track));
                 },
                 downloadCSV() {
                     const list = this.currentList;
@@ -2255,7 +2281,7 @@
                 }
             },
             mounted() {
-                const s = localStorage.getItem('track');
+                const s = localStorage.getItem('outreach_track_v2');
                 if (s) this.track = JSON.parse(s);
                 if (!this.track.main) this.track.main = {};
                 if (!this.track.discarded) this.track.discarded = {};
